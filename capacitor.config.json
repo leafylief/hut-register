@@ -1,0 +1,10 @@
+{
+  "appId": "com.thehutwarehouse.register",
+  "appName": "Hut Register",
+  "webDir": "www",
+  "ios": { "contentInset": "never", "backgroundColor": "#18231F" },
+  "android": { "backgroundColor": "#18231F" },
+  "plugins": {
+    "CapacitorHttp": { "enabled": false }
+  }
+}

@@ -1,0 +1,92 @@
+# Builds the Hut Register for Android and iPhone/iPad on GitHub's machines, so no Mac or
+# Android Studio is needed. Every push to main builds both and puts them on the
+# "latest" release page:
+#   hut-register.apk  tap it on any Android phone or tablet to install
+#   hut-register.ipa  unsigned; install on an iPad or iPhone with SideStore (signs it
+#                     with a free Apple ID)
+name: Build Hut Register
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm run build
+      - run: npx cap sync android
+      - name: Build the APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk ../hut-register.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: hut-register.apk
+
+  ios:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx cap sync ios
+      - name: Build the app without signing
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build | tail -40
+          APP=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name "*.app" | head -1)
+          mkdir -p Payload && cp -R "$APP" Payload/
+          zip -qr hut-register.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios
+          path: hut-register.ipa
+
+  release:
+    needs: [android, ios]
+    if: always() && (needs.android.result == 'success' || needs.ios.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+      - name: Publish to the latest release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Hut Register (latest build)
+          body: |
+            Build ${{ github.run_number }} from ${{ github.sha }}.
+            Android: download hut-register.apk on the tablet and tap it.
+            iPad/iPhone: open hut-register.ipa in SideStore.
+          prerelease: false
+          make_latest: true
+          files: |
+            out/android/hut-register.apk
+            out/ios/hut-register.ipa

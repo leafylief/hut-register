@@ -1,0 +1,23 @@
+{
+  "name": "hut-register",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The Hut Warehouse staff register: sell, guest list, check in, lineup and flyering",
+  "scripts": {
+    "build": "esbuild src/app.js --bundle --format=esm --target=es2020 --minify --sourcemap --outfile=www/app.js",
+    "sync": "npm run build && npx cap sync"
+  },
+  "dependencies": {
+    "@capacitor-community/stripe-terminal": "^8.4.0",
+    "@capacitor-mlkit/barcode-scanning": "^8.2.2",
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.6.2",
+    "@capacitor/preferences": "^8.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.2",
+    "esbuild": "^0.28.2"
+  }
+}
