@@ -8,6 +8,7 @@ name: Build Hut Register
 on:
   push:
     branches: [main]
+    paths-ignore: ['.github/workflows/iloader.yml']
   workflow_dispatch:
 
 permissions:

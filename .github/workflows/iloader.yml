@@ -1,0 +1,41 @@
+# Builds iLoader (the free tool that puts SideStore on the iPad) from its public source
+# code, pinned to the exact v2.4.2 commit that was reviewed, instead of trusting the
+# prebuilt download. Auto updates are switched off in this build. Output: iloader.exe
+# on the "iloader" release (a single program, no installer).
+name: Build iLoader from source
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/iloader.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: nab138/iloader
+          ref: 7364ae6571e8902f0b3c5a5540a655c6b4485f0f
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: ilammy/msvc-dev-cmd@v1
+      - run: choco install strawberryperl make --no-progress
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun i --frozen-lockfile
+      - run: bunx tauri build --no-bundle --config src-tauri/ci.conf.json
+      - name: Fingerprint
+        shell: bash
+        run: |
+          cp src-tauri/target/release/iloader.exe iloader.exe
+          sha256sum iloader.exe | tee iloader.exe.sha256
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: iloader
+          name: iLoader v2.4.2 built from source
+          body: "Built by GitHub from nab138/iloader commit 7364ae6 (v2.4.2) with auto updates off. Single program, no installer: download iloader.exe and run it."
+          files: |
+            iloader.exe
+            iloader.exe.sha256
